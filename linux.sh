@@ -1,4 +1,4 @@
-# does not cover SSH
+
 
 apt-get -V -y install firefox hardinfo chkrootkit iptables portsentry lynis ufw gufw sysv-rc-conf nessus clamav
 
@@ -6,7 +6,7 @@ apt-get -V -y install --reinstall coreutils
 apt-get update
 apt-get upgrade
 apt-get dist-upgrade
-
+sudo apt-get --purge --reinstall install firefox -y
 apt-get install -y apparmor
 systemctl enable apparmor
 systemctl start apparmor
@@ -19,7 +19,8 @@ nano /etc/sysctl.conf #change net.ipv4.tcp_syncookies entry from 0 to 1
 nano /etc/lightdm/lightdm.conf #allow_guest=false, remove autologin allow-guest=false greeter0hide-users=true greeter-show-manual-login=true autologin-user=none
 nano /etc/login.defs #FAILLOG_ENAB YES, LOG_UNKFAIL_ENAB YES. SYSLOG_SU_ENAB YES, SYSLOG_SG_ENAB YES ,PASS_MAX_DAYS 	90, PASS_MIN_DAYS 	10, PASS_WARN_AGE 7
 
-nano /etc/ssh/sshd_config #Look for PermitRootLogin and set to no
+nano /etc/ssh/sshd_config # LoginGraceTime 60 PermitRootLogin no Protocol 2 PermitEmptyPasswords no PasswordAuthentication yes X11Fowarding no UsePAM yes UsePrivilegeSeparation yes
+
     
 iptables -A INPUT -p tcp -s 0/0 -d 0/0 --dport 23 -j DROP         #Block Telnet
 iptables -A INPUT -p tcp -s 0/0 -d 0/0 --dport 2049 -j DROP       #Block NFS
@@ -83,4 +84,6 @@ apt-get install bum
 
 sudo apt-get install fail2ban
 sudo systemctl restart fail2ban.service
+
+sudo systemctl restart sshd
 
