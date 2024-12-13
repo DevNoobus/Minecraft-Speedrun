@@ -1,3 +1,5 @@
+# does not cover SSH
+
 apt-get -V -y install firefox hardinfo chkrootkit iptables portsentry lynis ufw gufw sysv-rc-conf nessus clamav
 
 apt-get -V -y install --reinstall coreutils
@@ -14,6 +16,9 @@ iptables -A INPUT -p udp -s 0/0 -d 0/0 --dport 515 -j DROP        #Block printer
 iptables -A INPUT -p tcp -s 0/0 -d 0/0 --dport 111 -j DROP        #Block Sun rpc/NFS
 iptables -A INPUT -p udp -s 0/0 -d 0/0 --dport 111 -j DROP        #Block Sun rpc/NFS
 iptables -A INPUT -p all -s localhost  -i eth0 -j DROP            #Deny outside packets from internet which claim to be 
+
+chmod 640 /etc/shadow
+
 ufw enable
 ufw deny 23
 ufw deny 2049
@@ -47,3 +52,16 @@ passwd -l root
 nmap zenmap apache2 nginx lighttpd wireshark tcpdump netcat-traditional nikto ophcrack
 
 sudo apt remove tcpdump netcat-traditional nikto ophcrack
+
+
+echo "PermitRootLogin no"
+echo "ChallengeResponseAuthentication no"
+echo "PasswordAuthentication no"
+echo "UsePAM no"
+echo "PermitEmptyPasswords no"
+
+apt-get install bum
+
+sudo apt-get install fail2ban
+sudo systemctl restart fail2ban.service
+
