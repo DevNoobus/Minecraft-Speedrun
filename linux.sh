@@ -6,6 +6,21 @@ apt-get -V -y install --reinstall coreutils
 apt-get update
 apt-get upgrade
 apt-get dist-upgrade
+
+apt-get install -y apparmor
+systemctl enable apparmor
+systemctl start apparmor
+
+nano /etc/apt/sources.list #check for malicious sources
+nano /etc/resolv.conf #make sure if safe, use 8.8.8.8 for name server
+nano /etc/hosts #make sure is not redirecting
+nano /etc/rc.local #should be empty except for 'exit 0'
+nano /etc/sysctl.conf #change net.ipv4.tcp_syncookies entry from 0 to 1
+nano /etc/lightdm/lightdm.conf #allow_guest=false, remove autologin allow-guest=false greeter0hide-users=true greeter-show-manual-login=true autologin-user=none
+nano /etc/login.defs #FAILLOG_ENAB YES, LOG_UNKFAIL_ENAB YES. SYSLOG_SU_ENAB YES, SYSLOG_SG_ENAB YES ,PASS_MAX_DAYS 	90, PASS_MIN_DAYS 	10, PASS_WARN_AGE 7
+
+nano /etc/ssh/sshd_config #Look for PermitRootLogin and set to no
+    
 iptables -A INPUT -p tcp -s 0/0 -d 0/0 --dport 23 -j DROP         #Block Telnet
 iptables -A INPUT -p tcp -s 0/0 -d 0/0 --dport 2049 -j DROP       #Block NFS
 iptables -A INPUT -p udp -s 0/0 -d 0/0 --dport 2049 -j DROP       #Block NFS
@@ -51,7 +66,10 @@ sudo sshd -t
 passwd -l root
 nmap zenmap apache2 nginx lighttpd wireshark tcpdump netcat-traditional nikto ophcrack
 
-sudo apt remove tcpdump netcat-traditional nikto ophcrack
+sudo apt remove ophcrack JTR Hydra Nginx Samba Bind9
+
+
+
 
 
 echo "PermitRootLogin no"
