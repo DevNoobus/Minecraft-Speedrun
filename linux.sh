@@ -66,7 +66,8 @@ sudo sshd -t
 passwd -l root
 nmap zenmap apache2 nginx lighttpd wireshark tcpdump netcat-traditional nikto ophcrack
 
-sudo apt remove ophcrack JTR Hydra Nginx Samba Bind9
+sudo apt remove --purge ophcrack JTR Hydra Nginx Samba Bind9 X11vnc/tightvncserver Snmp Nfs Sendmail/postfix Xinetd
+
 
 
 
