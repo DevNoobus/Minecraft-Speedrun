@@ -1,7 +1,7 @@
 
 
-apt-get -V -y install firefox hardinfo chkrootkit iptables portsentry lynis ufw gufw sysv-rc-conf nessus clamav
-
+apt-get -V -y install firefox hardinfo chkrootkit iptables portsentry lynis ufw gufw sysv-rc-conf nessus clamav auditd
+auditctl -e 1
 apt-get -V -y install --reinstall coreutils
 apt-get update
 apt-get upgrade
