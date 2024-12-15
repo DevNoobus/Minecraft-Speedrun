@@ -34,6 +34,7 @@ iptables -A INPUT -p udp -s 0/0 -d 0/0 --dport 111 -j DROP        #Block Sun rpc
 iptables -A INPUT -p all -s localhost  -i eth0 -j DROP            #Deny outside packets from internet which claim to be 
 
 chmod 640 /etc/shadow
+passwd –l root
 
 ufw enable
 ufw deny 23
@@ -88,6 +89,7 @@ mawk -F: '$3 == 0 && $1 != "root"' /etc/passwd
 mawk -F: '$2 == ""' /etc/passwd
 
 apt-get remove .*samba.* .*smb.*
+sudo apt-get remove netcat-traditional
 
 echo "PermitRootLogin no"
 echo "ChallengeResponseAuthentication no"
