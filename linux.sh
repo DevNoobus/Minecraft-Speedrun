@@ -70,14 +70,19 @@ nmap zenmap apache2 nginx lighttpd wireshark tcpdump netcat-traditional nikto op
 
 sudo apt remove --purge ophcrack JTR Hydra Nginx Samba Bind9 X11vnc/tightvncserver Snmp Nfs Sendmail/postfix Xinetd
 
+echo 'install usb-storage /bin/true' >> /etc/modprobe.d/disable-usb-storage.conf
+
+grep -qF 'multi on' && sed 's/multi/nospoof/' || echo 'nospoof on' >> /etc/host.conf
 
 sed -i 's/PASS_MAX_DAYS.*$/PASS_MAX_DAYS 90/;s/PASS_MIN_DAYS.*$/PASS_MIN_DAYS 10/;s/PASS_WARN_AGE.*$/PASS_WARN_AGE 7/' /etc/login.defs
-
+find /dir -xdev -type d \( -perm -0002 -a ! -perm -1000 \) -print
 echo 'auth required pam_tally2.so deny=5 onerr=fail unlock_time=1800' >> /etc/pam.d/common-auth
 apt-get install libpam-cracklib
 sed -i 's/\(pam_unix\.so.*\)$/\1 remember=5 minlen=8/' /etc/pam.d/common-password
 sed -i 's/\(pam_cracklib\.so.*\)$/\1 ucredit=-1 lcredit=-1 dcredit=-1 ocredit=-1/' /etc/pam.d/common-password
 
+echo "blacklist firewire-core" >> /etc/modprobe.d/firewire.conf
+echo "blacklist thunderbolt" >> /etc/modprobe.d/thunderbolt.conf
 apt-get install auditd && auditctl -e 1
 
 mawk -F: '$1 == "sudo"' /etc/group
@@ -97,9 +102,14 @@ echo "PasswordAuthentication no"
 echo "UsePAM no"
 echo "PermitEmptyPasswords no"
 
+sudo apt-get install chkrootkit rkhunter
+sudo chkrootkit
+sudo rkhunter --update
+sudo rkhunter --check
+
 apt-get install bum
 
-sudo apt-get install fail2ban
+sudo apt install fail2ban
 sudo systemctl restart fail2ban.service
 
 sudo systemctl restart sshd
