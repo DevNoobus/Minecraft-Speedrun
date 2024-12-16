@@ -21,7 +21,10 @@ nano /etc/rc.local #should be empty except for 'exit 0'
 #nano /etc/login.defs #FAILLOG_ENAB YES, LOG_UNKFAIL_ENAB YES. SYSLOG_SU_ENAB YES, SYSLOG_SG_ENAB YES ,PASS_MAX_DAYS 	90, PASS_MIN_DAYS 	10, PASS_WARN_AGE 7
 
 nano /etc/ssh/sshd_config # LoginGraceTime 60 PermitRootLogin no Protocol 2 PermitEmptyPasswords no PasswordAuthentication yes X11Fowarding no UsePAM yes UsePrivilegeSeparation yes
-
+apparmor () {
+    sudo $APT install -y apparmor-utils
+    sudo aa-enforce /etc/apparmor.d/*
+}
     
 remove_malware () {
     # Files necessary:
@@ -664,7 +667,9 @@ networking_sysctl_config
 system_sysctl_config
 monitor_ports
 disable_ctrl_alt_del
+apparmor
 file_perms
+
 firewall_setup
 password_policies
 account_policies
