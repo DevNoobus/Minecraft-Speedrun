@@ -215,7 +215,7 @@ networking_sysctl_config () {
     sudo sysctl --system
 
     # Disable IPV6
-    sudo sed -i '/^IPV6=yes/ c\IPV6=no\' /etc/default/ufw'
+    sudo sed -i '/^IPV6=yes/ c\IPV6=no\ /etc/default/ufw'
     echo 'blacklist ipv6' | sudo tee -a /etc/modprobe.d/blacklist > /dev/null
 }
 
