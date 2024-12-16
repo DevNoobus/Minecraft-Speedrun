@@ -55,9 +55,62 @@ remove_malware () {
 
     for i in "${arr[@]}"
     do
-        sudo $APT purge -y --force-yes $i
+        sudo apt purge -y --force-yes $i
     done
 }
+
+
+check_and_reset_crontabs () {
+    local normal_crontab='# /etc/crontab: system-wide crontab\n
+    # Unlike any other crontab you dont have to run the crontab\n
+    # command to install the new version when you edit this file\n
+    # and files in /etc/cron.d. These files also have username fields,\n
+    # that none of the other crontabs do.\n
+
+    SHELL=/bin/sh\n
+    PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin\n
+
+    # m h dom mon dow user  command\n
+    17 \*    \* \* \*   root    cd / && run-parts --report /etc/cron.hourly\n
+    25 6    \* \* \*   root    test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.daily )\n
+    47 6    \* \* 7   root    test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.weekly )\n
+    52 6    1 \* \*   root    test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.monthly )\n
+    #'
+    
+    # Save a backup of the crontab and then just replace it with an empty one
+    sudo cp /etc/crontab backup/services/crons/crontab
+    echo -e $normal_crontab | sed "s/^ //g; s/\\\*//g" | sudo tee /etc/crontab > /dev/null
+
+    # List all the crontabs 
+    #sudo ls -la /var/spool/cron/* 2> /dev/null | tee backup/services/crontabs_
+    sudo ls -la /etc/cron.d/* 2> /dev/null      | tee backup/services/crons/crontab_system_crons.log > /dev/null
+    sudo ls -la /etc/cron.hourly/ 2> /dev/null  | tee -a backup/services/crons/crontab_system_crons.log > /dev/null
+    sudo ls -la /etc/cron.daily/* 2> /dev/null  | tee -a backup/services/crons/crontab_system_crons.log  > /dev/null
+    sudo ls -la /etc/cron.weekly/* 2> /dev/null | tee -a backup/services/crons/crontab_system_crons.log > /dev/null
+    sudo ls -la /etc/cron.monthly/* 2> /dev/null| tee -a backup/services/crons/crontab_system_crons.log > /dev/null
+
+    local user_crons=$(sudo ls /var/spool/cron/crontabs)
+    local answer=""
+    if [[ ! -z $user_crons ]]
+    then 
+        echo "${YELLOW}[!] Detected user crontabs at /var/spool/cron/crontabs for users: ${user_crons}${RESET}"
+        echo -n "${CYAN}Move user crontabs to quarantine [${GREEN}y${CYAN}|${RED}N${CYAN}] : ${RESET}"
+        read -rp "" answer
+        case $answer in 
+            y|Y)
+                echo
+                echo "${GREEN}[*] Crontabs moved to backup/services/crons/ ${RESET}"
+                for cron in $user_crons
+                do 
+                    sudo mv /var/spool/cron/crontabs/$cron backup/services/crons/$cron
+                done 
+                ;;
+            n|N)
+                ;; # Do nothing
+        esac
+    fi
+}
+
 disable_guests () {
     # Makes the self-added configs directory
     # Adds a new local config
@@ -90,6 +143,253 @@ user_policies_install () {
 
     sudo $APT install --force-yes -y libpam-cracklib fail2ban
 }
+
+# -------------------- Networking functions -------------------- 
+networking_sysctl_config () {
+    # Add a new local sysctl config file for the networking section
+    sudo touch /etc/sysctl.d/cybercent-networking.conf
+
+    # Add each config listed below 
+
+    # IPv4 TIME-WAIT assassination protection
+    echo net.ipv4.tcp_rfc1337=1 | sudo tee -a /etc/sysctl.d/cybercent-networking.conf > /dev/null
+
+    # IP Spoofing protection, Source route verification  
+    # Scored
+    echo net.ipv4.conf.all.rp_filter=1      | sudo tee -a /etc/sysctl.d/cybercent-networking.conf > /dev/null
+    echo net.ipv4.conf.default.rp_filter=1  | sudo tee -a /etc/sysctl.d/cybercent-networking.conf > /dev/null
+
+    # Ignore ICMP broadcast requests
+    echo net.ipv4.icmp_echo_ignore_broadcasts=1 | sudo tee -a /etc/sysctl.d/cybercent-networking.conf > /dev/null
+
+    # Ignore Directed pings
+    echo net.ipv4.icmp_echo_ignore_all=1 | sudo tee -a /etc/sysctl.d/cybercent-networking.conf > /dev/null
+
+    # Log Martians
+    echo net.ipv4.conf.all.log_martians=1               | sudo tee -a /etc/sysctl.d/cybercent-networking.conf > /dev/null
+    echo net.ipv4.icmp_ignore_bogus_error_responses=1   | sudo tee -a /etc/sysctl.d/cybercent-networking.conf > /dev/null
+
+    # Disable source packet routing
+    echo net.ipv4.conf.all.accept_source_route=0        | sudo tee -a /etc/sysctl.d/cybercent-networking.conf > /dev/null
+    echo net.ipv4.conf.default.accept_source_route=0    | sudo tee -a /etc/sysctl.d/cybercent-networking.conf > /dev/null
+    echo net.ipv6.conf.all.accept_source_route=0        | sudo tee -a /etc/sysctl.d/cybercent-networking.conf > /dev/null
+    echo net.ipv6.conf.default.accept_source_route=0    | sudo tee -a /etc/sysctl.d/cybercent-networking.conf > /dev/null
+
+    # Block SYN attacks
+    echo net.ipv4.tcp_syncookies=1          | sudo tee -a /etc/sysctl.d/cybercent-networking.conf > /dev/null
+    echo net.ipv4.tcp_max_syn_backlog=2048  | sudo tee -a /etc/sysctl.d/cybercent-networking.conf > /dev/null
+    echo net.ipv4.tcp_synack_retries=2      | sudo tee -a /etc/sysctl.d/cybercent-networking.conf > /dev/null
+    echo net.ipv4.tcp_syn_retries=4         | sudo tee -a /etc/sysctl.d/cybercent-networking.conf > /dev/null # Try values 1-5
+
+
+    # Ignore ICMP redirects
+    echo net.ipv4.conf.all.send_redirects=0         | sudo tee -a /etc/sysctl.d/cybercent-networking.conf > /dev/null
+    echo net.ipv4.conf.default.send_redirects=0     | sudo tee -a /etc/sysctl.d/cybercent-networking.conf > /dev/null
+    echo net.ipv4.conf.all.accept_redirects=0       | sudo tee -a /etc/sysctl.d/cybercent-networking.conf > /dev/null
+    echo net.ipv4.conf.default.accept_redirects=0   | sudo tee -a /etc/sysctl.d/cybercent-networking.conf > /dev/null
+    echo net.ipv4.conf.all.secure_redirects=0       | sudo tee -a /etc/sysctl.d/cybercent-networking.conf > /dev/null
+    echo net.ipv4.conf.default.secure_redirects=0   | sudo tee -a /etc/sysctl.d/cybercent-networking.conf > /dev/null
+
+    echo net.ipv6.conf.all.send_redirects=0         | sudo tee -a /etc/sysctl.d/cybercent-networking.conf > /dev/null # ignore ?
+    echo net.ipv6.conf.default.send_redirects=0     | sudo tee -a /etc/sysctl.d/cybercent-networking.conf > /dev/null # ignore ?
+    echo net.ipv6.conf.all.accept_redirects=0       | sudo tee -a /etc/sysctl.d/cybercent-networking.conf > /dev/null
+    echo net.ipv6.conf.default.accept_redirects=0   | sudo tee -a /etc/sysctl.d/cybercent-networking.conf > /dev/null
+    echo net.ipv6.conf.all.secure_redirects=0       | sudo tee -a /etc/sysctl.d/cybercent-networking.conf > /dev/null # ignore ?
+    echo net.ipv6.conf.default.secure_redirects=0   | sudo tee -a /etc/sysctl.d/cybercent-networking.conf > /dev/null # ignore ?
+
+    # Note disabling ipv6 means you dont need the majority of the ipv6 settings
+
+    # General options
+    echo net.ipv6.conf.default.router_solicitations=0   | sudo tee -a /etc/sysctl.d/cybercent-networking.conf > /dev/null
+    echo net.ipv6.conf.default.accept_ra_rtr_pref=0     | sudo tee -a /etc/sysctl.d/cybercent-networking.conf > /dev/null
+    echo net.ipv6.conf.default.accept_ra_pinfo=0        | sudo tee -a /etc/sysctl.d/cybercent-networking.conf > /dev/null
+    echo net.ipv6.conf.default.accept_ra_defrtr=0       | sudo tee -a /etc/sysctl.d/cybercent-networking.conf > /dev/null
+    echo net.ipv6.conf.default.autoconf=0               | sudo tee -a /etc/sysctl.d/cybercent-networking.conf > /dev/null
+    echo net.ipv6.conf.default.dad_transmits=0          | sudo tee -a /etc/sysctl.d/cybercent-networking.conf > /dev/null
+    echo net.ipv6.conf.default.max_addresses=1          | sudo tee -a /etc/sysctl.d/cybercent-networking.conf > /dev/null
+    echo net.ipv6.conf.all.disable_ipv6=1               | sudo tee -a /etc/sysctl.d/cybercent-networking.conf > /dev/null
+    echo net.ipv6.conf.lo.disable_ipv6=1                | sudo tee -a /etc/sysctl.d/cybercent-networking.conf > /dev/null
+
+    # Reload the configs 
+    # sudo sysctl -p /etc/sysctl.d/cybercent.conf
+    sudo sysctl --system
+
+    # Disable IPV6
+    sudo sed -i '/^IPV6=yes/ c\IPV6=no\' /etc/default/ufw'
+    echo 'blacklist ipv6' | sudo tee -a /etc/modprobe.d/blacklist > /dev/null
+}
+
+firewall_setup () {
+    # UFW Firewall setup
+    # Since idk critical services, I didnt do these commands 
+    #   * sudo ufw default deny incoming
+    #   * sudo ufw default allow outgoing
+    #   * sudo ufw allow <PORT>  (this is for each critical service) 
+
+    # Flush/Delete firewall rules
+    sudo iptables -F
+    sudo iptables -X
+    sudo iptables -Z
+
+    sudo $APT install -y ufw
+    sudo ufw status verbose > backup/networking/firewall_ufw_before.log 
+    echo "y" | sudo ufw reset
+    sudo ufw enable 
+    sudo ufw logging full
+
+    # The particular firewall exceptions will be added depending on critical services
+    sudo ufw default deny incoming 
+    sudo ufw default allow outgoing
+
+    sudo ufw deny 23    #Block Telnet
+    sudo ufw deny 2049  #Block NFS
+    sudo ufw deny 515   #Block printer port
+    sudo ufw deny 111   #Block Sun rpc/NFS
+    sudo ufw status verbose > backup/networking/firewall_ufw_after.log 
+
+    # Iptables specific
+    # Block null packets (DoS)
+    sudo iptables -A INPUT -p tcp --tcp-flags ALL NONE -j DROP
+
+    # Block syn-flood attacks (DoS)
+    sudo iptables -A INPUT -p tcp ! --syn -m state --state NEW -j DROP
+
+    #Drop incoming packets with fragments
+    sudo iptables -A INPUT -f -j DROP
+
+    # Block XMAS packets (DoS)
+    sudo iptables -A INPUT -p tcp --tcp-flags ALL ALL -j DROP
+
+    # Allow internal traffic on the loopback device
+    sudo iptables -A INPUT -i lo -j ACCEPT
+
+    # Allow ssh access
+    # sudo iptables -A INPUT -p tcp -m tcp --dport 22 -j ACCEPT
+
+    # Allow established connections
+    sudo iptables -I INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+    # Allow outgoing connections
+    sudo iptables -P OUTPUT ACCEPT
+
+    # Set default deny firewall policy
+    sudo iptables -P INPUT DROP
+
+    #Block Telnet
+    sudo iptables -A INPUT -p tcp -s 0/0 -d 0/0 --dport 23 -j DROP
+
+    #Block NFS
+    sudo iptables -A INPUT -p tcp -s 0/0 -d 0/0 --dport 2049 -j DROP
+
+    #Block X-Windows
+    sudo iptables -A INPUT -p tcp -s 0/0 -d 0/0 --dport 6000:6009 -j DROP
+
+    #Block X-Windows font server
+    sudo iptables -A INPUT -p tcp -s 0/0 -d 0/0 --dport 7100 -j DROP
+
+    #Block printer port
+    sudo iptables -A INPUT -p tcp -s 0/0 -d 0/0 --dport 515 -j DROP
+
+    #Block Sun rpc/NFS
+    sudo iptables -A INPUT -p udp -s 0/0 -d 0/0 --dport 111 -j DROP
+
+    # Deny outside packets from internet which claim to be from your loopback interface.
+    sudo iptables -A INPUT -p all -s localhost  -i eth0 -j DROP
+
+    # Save rules
+    sudo iptables-save > /etc/sudo iptables/rules.v4
+
+}
+
+monitor_ports () { 
+    # Pipes open tcp and udp ports into a less window
+    sudo netstat -peltu | column -t > backup/networking/open_ports.log
+
+    sudo $APT install nmap -y
+    sudo nmap -oN backup/networking/nmap.log -p- -v localhost 
+    sudo $APT purge nmap -y
+}
+
+
+system_sysctl_config() {
+
+    # Add a new config file
+    sudo touch /etc/sysctl.d/cybercent-networking.conf
+
+    # Add these configs
+    echo kernel.dmesg_restrict=1            | sudo tee -a /etc/sysctl.d/cybercent-system.conf > /dev/null # Scored
+    echo fs.suid_dumpable=0                 | sudo tee -a /etc/sysctl.d/cybercent-system.conf > /dev/null # Core dumps # Scored
+    echo kernel.msgmnb=65536                | sudo tee -a /etc/sysctl.d/cybercent-system.conf > /dev/null
+    echo kernel.msgmax=65536                | sudo tee -a /etc/sysctl.d/cybercent-system.conf > /dev/null
+    echo kernel.sysrq=0                     | sudo tee -a /etc/sysctl.d/cybercent-system.conf > /dev/null
+    echo kernel.maps_protect=1              | sudo tee -a /etc/sysctl.d/cybercent-system.conf > /dev/null
+    echo kernel.core_uses_pid=1             | sudo tee -a /etc/sysctl.d/cybercent-system.conf > /dev/null
+    echo kernel.shmmax=68719476736          | sudo tee -a /etc/sysctl.d/cybercent-system.conf > /dev/null
+    echo kernel.shmall=4294967296           | sudo tee -a /etc/sysctl.d/cybercent-system.conf > /dev/null
+    echo kernel.exec_shield=1               | sudo tee -a /etc/sysctl.d/cybercent-system.conf > /dev/null
+    echo kernel.panic=10                    | sudo tee -a /etc/sysctl.d/cybercent-system.conf > /dev/null
+    echo kernel.kptr_restrict=2             | sudo tee -a /etc/sysctl.d/cybercent-system.conf > /dev/null
+    echo vm.panic_on_oom=1                  | sudo tee -a /etc/sysctl.d/cybercent-system.conf > /dev/null
+    echo fs.protected_hardlinks=1           | sudo tee -a /etc/sysctl.d/cybercent-system.conf > /dev/null
+    echo fs.protected_symlinks=1            | sudo tee -a /etc/sysctl.d/cybercent-system.conf > /dev/null
+    echo kernel.randomize_va_space=2        | sudo tee -a /etc/sysctl.d/cybercent-system.conf > /dev/null # Scored ASLR; 2 = full; 1 = semi; 0 = none
+    echo kernel.unprivileged_userns_clone=0 | sudo tee -a /etc/sysctl.d/cybercent-system.conf > /dev/null # Scored
+    echo kernel.ctrl-alt-del=0              | sudo tee -a /etc/sysctl.d/cybercent-system.conf > /dev/null # Scored CTRL-ALT-DEL disable
+
+    sudo sysctl --system
+}
+
+disable_ctrl_alt_del () {
+    echo 'exec shutdown -r now "Control-Alt-Delete pressed"' | sudo tee -a /etc/init/control-alt-delete.conf
+    
+    sudo systemctl mask ctrl-alt-del.target
+    sudo systemctl daemon-reload
+}
+
+file_perms () {
+    sudo chown root:root /etc/fstab     # Scored
+    sudo chmod 644 /etc/fstab           # Scored
+    sudo chown root:root /etc/group     # Scored
+    sudo chmod 644 /etc/group           # Scored
+    sudo chown root:root /etc/shadow    # Scored
+    sudo chmod 400 /etc/shadow  	    # Scored	
+    sudo chown root:root /etc/apache2   # Scored
+    sudo chmod 755 /etc/apache2         # Scored
+
+    sudo chmod 0600 /etc/securetty
+    sudo chmod 644 /etc/crontab
+    sudo chmod 640 /etc/ftpusers
+    sudo chmod 440 /etc/inetd.conf
+    sudo chmod 440 /etc/xinetd.conf
+    sudo chmod 400 /etc/inetd.d
+    sudo chmod 644 /etc/hosts.allow
+    sudo chmod 440 /etc/ers
+    sudo chmod 640 /etc/shadow              # Scored
+    sudo chmod 600 /boot/grub/grub.cfg      # Scored
+    sudo chmod 600 /etc/ssh/sshd_config     # Scored
+    sudo chmod 600 /etc/gshadow-            # Scored
+    sudo chmod 600 /etc/group-              # Scored
+    sudo chmod 600 /etc/passwd-             # Scored
+
+    sudo chown root:root /etc/ssh/sshd_config # Scored
+    sudo chown root:root /etc/passwd-         # Scored
+    sudo chown root:root /etc/group-          # Scored
+    sudo chown root:root /etc/shadow          # Scored
+    sudo chown root:root /etc/securetty
+    sudo chown root:root /boot/grub/grub.cfg  # Scored
+
+    sudo chmod og-rwx /boot/grub/grub.cfg  	# Scored
+    sudo chown root:shadow /etc/shadow-
+    sudo chmod o-rwx,g-rw /etc/shadow-
+    sudo chown root:shadow /etc/gshadow-
+    sudo chmod o-rwx,g-rw /etc/gshadow-
+
+   
+}
+
+
+
+
 
 password_policies () {
     # common-password
@@ -141,7 +441,6 @@ account_policies () {
 }
 
 
-# -------------------- APT functions -------------------- 
 enable_autoupdate () {
     # Files necessary:
     #   NONE
@@ -305,12 +604,6 @@ mawk -F: '$2 == ""' /etc/passwd
 apt-get remove .*samba.* .*smb.*
 sudo apt-get remove netcat-traditional
 
-echo "PermitRootLogin no"
-echo "ChallengeResponseAuthentication no"
-echo "PasswordAuthentication no"
-echo "UsePAM no"
-echo "PermitEmptyPasswords no"
-
 sudo apt-get install chkrootkit rkhunter
 sudo chkrootkit
 sudo rkhunter --update
@@ -355,12 +648,28 @@ sudo systemctl disable rsync
 sudo systemctl disable nis
 
     # $APT purge -y xserver-xorg*
-    $APT purge -y openbsd-inetd
-    $APT purge -y ldap-utils 
-    $APT purge -y nis
-    $APT purge -y talk
-    $APT purge -y telnet # Scored
+sudo apt purge -y openbsd-inetd
+sudo apt purge -y ldap-utils 
+sudo apt purge -y nis
+sudo apt purge -y talk
+sudo apt purge -y telnet # Scored
 
-
+#running functions
+remove_malware
+check_and_reset_crontabs
+disable_guests
+user_policies_install
+networking_sysctl_config
+system_sysctl_config
+monitor_ports
+disable_ctrl_alt_del
+file_perms
+firewall_setup
+password_policies
+account_policies
+login_policies
+enable_autoupdate
+fix_sources_list
+update
 sudo systemctl restart sshd
 
