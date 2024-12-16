@@ -658,6 +658,7 @@ sudo $apt purge -y telnet # Scored
 remove_malware
 check_and_reset_crontabs
 disable_guests
+install_necessary_packages
 user_policies_install
 networking_sysctl_config
 system_sysctl_config
@@ -670,6 +671,7 @@ account_policies
 login_policies
 enable_autoupdate
 fix_sources_list
+
 update
 sudo systemctl restart sshd
 
