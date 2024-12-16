@@ -12,13 +12,13 @@ apt-get install -y apparmor
 systemctl enable apparmor
 systemctl start apparmor
 
-nano /etc/apt/sources.list #check for malicious sources
+#nano /etc/apt/sources.list #check for malicious sources
 nano /etc/resolv.conf #make sure if safe, use 8.8.8.8 for name server
-nano /etc/hosts #make sure is not redirecting
+#nano /etc/hosts #make sure is not redirecting
 nano /etc/rc.local #should be empty except for 'exit 0'
-nano /etc/sysctl.conf #change net.ipv4.tcp_syncookies entry from 0 to 1
+#nano /etc/sysctl.conf #change net.ipv4.tcp_syncookies entry from 0 to 1
 
-nano /etc/login.defs #FAILLOG_ENAB YES, LOG_UNKFAIL_ENAB YES. SYSLOG_SU_ENAB YES, SYSLOG_SG_ENAB YES ,PASS_MAX_DAYS 	90, PASS_MIN_DAYS 	10, PASS_WARN_AGE 7
+#nano /etc/login.defs #FAILLOG_ENAB YES, LOG_UNKFAIL_ENAB YES. SYSLOG_SU_ENAB YES, SYSLOG_SG_ENAB YES ,PASS_MAX_DAYS 	90, PASS_MIN_DAYS 	10, PASS_WARN_AGE 7
 
 nano /etc/ssh/sshd_config # LoginGraceTime 60 PermitRootLogin no Protocol 2 PermitEmptyPasswords no PasswordAuthentication yes X11Fowarding no UsePAM yes UsePrivilegeSeparation yes
 
