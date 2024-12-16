@@ -55,7 +55,7 @@ remove_malware () {
 
     for i in "${arr[@]}"
     do
-        sudo apt purge -y --force-yes $i
+        sudo $APT purge -y --force-yes $i
     done
 }
 
@@ -648,11 +648,11 @@ sudo systemctl disable rsync
 sudo systemctl disable nis
 
     # $APT purge -y xserver-xorg*
-sudo apt purge -y openbsd-inetd
-sudo apt purge -y ldap-utils 
-sudo apt purge -y nis
-sudo apt purge -y talk
-sudo apt purge -y telnet # Scored
+sudo $apt purge -y openbsd-inetd
+sudo $apt purge -y ldap-utils 
+sudo $apt purge -y nis
+sudo $apt purge -y talk
+sudo $apt purge -y telnet # Scored
 
 #running functions
 remove_malware
