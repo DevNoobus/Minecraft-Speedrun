@@ -1128,7 +1128,7 @@ mawk -F: '$3 == 0 && $1 != "root"' /etc/passwd
 
 mawk -F: '$2 == ""' /etc/passwd
 
-apt-get remove .*samba.* .*smb.*
+##apt-get remove .*samba.* .*smb.*
 sudo apt-get remove netcat-traditional
 
 sudo apt-get install chkrootkit rkhunter
@@ -1144,36 +1144,6 @@ sudo systemctl restart fail2ban.service
     # Stop every service
     # Will be restarted manually depending on critical_services.txt
 
-sudo systemctl disable pop3
-sudo systemctl disable imap 
-sudo systemctl disable icmp 
-sudo systemctl disable sendmail
-sudo systemctl disable smbd
-    # sudo systemctl disable samba-ad-dc
-sudo systemctl disable nginx
-sudo systemctl disable apache2
-sudo systemctl disable mysql
-sudo systemctl disable ssh
-sudo systemctl disable vsftpd
-sudo systemctl disable pure-ftpd
-sudo systemctl disable proftp
-
-sudo systemctl disable cups
-sudo systemctl disable cups-browsed
-sudo systemctl disable cupsd
-sudo systemctl disable avahi-daemon         # Scored
-sudo systemctl disabled isc-dhcp-server
-sudo systemctl disabled isc-dhcp-server6
-sudo systemctl disabled slapd
-sudo systemctl disable autofs               # Scored
-sudo systemctl disable nfs-server           # Scored
-sudo systemctl disable rpcbind              # Scored
-sudo systemctl disable bind9                # Scored
-sudo systemctl disable dovecot
-sudo systemctl disable squid
-sudo systemctl disable rsync
-sudo systemctl disable nis
-
     # $APT purge -y xserver-xorg*
 sudo $apt purge -y openbsd-inetd
 sudo $apt purge -y ldap-utils 
@@ -1185,7 +1155,7 @@ sudo $apt purge -y telnet # Scored
 
 #service_ssh
 
-#service_samba
+
 
 #service_vsftpd
 
@@ -1204,6 +1174,7 @@ sudo $apt purge -y telnet # Scored
 
 
 #running functions
+service_samba
 remove_malware
 check_and_reset_crontabs
 disable_guests
