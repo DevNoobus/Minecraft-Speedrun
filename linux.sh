@@ -1078,7 +1078,7 @@ ufw deny 515
 ufw deny 111
 ##lsof  -i -n -P
 netstat -tulpn
-delete_media () {
+
 find / -name '*.mp3' -type f -delete
 find / -name '*.mov' -type f -delete
 find / -name '*.mp4' -type f -delete
