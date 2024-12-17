@@ -1181,6 +1181,28 @@ sudo $apt purge -y nis
 sudo $apt purge -y talk
 sudo $apt purge -y telnet # Scored
 
+# ----------------- optional (enable or disable if needed) ------------------- #
+
+#service_ssh
+
+#service_samba
+
+#service_vsftpd
+
+#service_pureftpd
+
+#service_proftpd
+
+#service_apache2
+
+#service_php
+
+#service_nginx
+
+#service_mysql
+
+
+
 #running functions
 remove_malware
 check_and_reset_crontabs
