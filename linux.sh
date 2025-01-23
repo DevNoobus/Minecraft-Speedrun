@@ -1,3 +1,5 @@
+APT=apt
+
 # ------------------------ Basic Commands  -------------------------- #
 
 apt-get -V -y install firefox hardinfo chkrootkit iptables portsentry lynis ufw gufw sysv-rc-conf nessus clamav auditd
